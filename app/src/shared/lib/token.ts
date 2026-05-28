@@ -7,7 +7,7 @@ export const generateAccessToken = (id: string) => {
   return jwt.sign(
     { id , jti: crypto.randomUUID()},
     env.accessTokenSecret,
-    { expiresIn: "15m" }
+    { expiresIn: "7d" }
   );
 };
 

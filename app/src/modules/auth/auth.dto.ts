@@ -16,12 +16,3 @@ export const logoutDto = z.object({
   id: z.number(),
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
-
-export const thisUserDto = z.object({
-  id: z.number(),
-});
-
-export type RegisterType = z.infer<typeof registerDto>;
-export type LoginType = z.infer<typeof loginDto>;
-export type LogoutType = z.infer<typeof logoutDto>;
-export type ThisUserType = z.infer<typeof thisUserDto>;

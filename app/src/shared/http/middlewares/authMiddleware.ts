@@ -24,11 +24,30 @@ export const authMiddleware = (
       return res.status(401).json({ message: "Неверный формат токена" });
     }
 
-    const decoded = jwt.verify(accessToken, env.accessTokenSecret) as { id: number };
+    const decoded = jwt.verify(accessToken, env.accessTokenSecret) as { id: string | number };
+    const userId = Number(decoded.id);
 
-    req.id = decoded.id;
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Access token невалидный" });
+    }
+
+    req.id = userId;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Access token невалидный" });
   }
+};
+
+export const optionalAuthMiddleware = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return next();
+  }
+
+  return authMiddleware(req, res, next);
 };

@@ -1,5 +1,5 @@
 export interface TwitCreate {
-    userId: string;
+    userId: number;
     content: string;
 }
 // userSession
@@ -11,20 +11,30 @@ interface Likes {
     id: number;
 }
 export interface Twit {
-    id: number;
-    content: string;
-    createdAt: Date;
     likesCount: number;
     isLiked: boolean;
-    
-    userId: number;
-
     user: {
         id: number;
-        name: string | null;
         login: string;
+        name: string | null;
         avatar: string | null;
     };
+    likes: {
+        id: number;
+    }[];
+    id: number;
+    userId: number;
+    content: string;
+    createdAt: Date;
+}
 
-    likes: Likes[]
+export interface TwitLikeResult {
+    post: {
+        id: number;
+        userId: number;
+        content: string;
+        likesCount: number;
+        createdAt: Date;
+    };
+    liked: boolean;
 }

@@ -3,6 +3,7 @@ import { authRouter } from "./modules/auth/auth.controller";
 import { errorMiddleware } from "./shared/http/middlewares/errorMiddleware";
 import { twitRouter } from "./modules/twit/twit.controller";
 import { env } from "./shared/config/env";
+import { userRouter } from "./modules/user/user.controller";
 
 const app = express();
 
@@ -30,6 +31,8 @@ export function createApp() {
   
   app.use("/api/auth", authRouter);
   app.use("/api/post", twitRouter);
+  app.use("/api/user", userRouter);
+
 
   app.use((req, res) => {
     res.status(404).json({

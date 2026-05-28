@@ -1,10 +1,9 @@
 import { Request, Router } from "express";
 import { AuthService } from "./auth.service";
 import { LoginType, RegisterType } from "./auth.type";
-import { loginDto, registerDto, logoutDto, thisUserDto } from "./auth.dto";
+import { loginDto, registerDto, logoutDto } from "./auth.dto";
 import { authMiddleware, AuthRequest } from "@/src/shared/http/middlewares/authMiddleware";
-import { prisma } from "@/src/shared/db/prisma";
-import { get } from "node:http";
+
 
 const router = Router();
 const authService = new AuthService();
@@ -57,38 +56,5 @@ router.patch("/logout", authMiddleware, async (req: AuthRequest, res, next) => {
   }
 });
 
-router.get("/this-user", async (req, res, next) => {
-  try {
-    const idRaw = Number(req.query.id);
-    const validation = thisUserDto.safeParse({ id: idRaw });
-
-    if (!validation.success) {
-      return res.status(400).json({ message: validation.error.flatten().fieldErrors });
-    }
-
-    const user = await authService.thisUser(validation.data.id);
-
-    return res.status(200).json({ user });
-  } catch (e) {
-    next(e);
-  }
-});
-
-router.get("/posts-all", async (req, res, next) => {
-  try {
-    const idRaw = Number(req.query.id);
-    const validation = thisUserDto.safeParse({ id: idRaw });
-
-    if (!validation.success) {
-      return res.status(400).json({ message: validation.error.flatten().fieldErrors });
-    }
-    const posts = await authService.getPostsAll(validation.data.id);
-
-    return res.status(200).json({ posts });
-
-  } catch (e) {
-    next(e);
-  }
-});
 
 export const authRouter = router;

@@ -5,8 +5,8 @@
   "main": "main.ts",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --exit-child -r tsconfig-paths/register app/main.ts",
-    "build": "tsc",
-    "main": "dist/app/main.js"
+    "build": "tsc && tsc-alias",
+    "start": "node dist/app/main.js"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +31,7 @@
     "@types/node": "^25.5.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.6.0",
+    "tsc-alias": "^1.8.17",
     "typescript": "^6.0.2"
   }
 }

@@ -1,5 +1,5 @@
 
-export type User = {
+export type UserSession = {
     id: number;
     email: string;
     login: string;
@@ -19,5 +19,20 @@ export type UserRecommended = {
     login: string;
     name: string | null;
     avatar: string | null;
+    isFollowedByMe: boolean;
+}
+
+export type User = {
+    id: number;
+    login: string;
+    name: string | null;
+    email: string;
+    avatar: string | null;
+    bio: string | null;
+    avatarPublicId: string | null;
+    _count: {
+        followers: number;
+        following: number;
+    };
     isFollowedByMe: boolean;
 }

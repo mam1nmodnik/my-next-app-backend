@@ -3,8 +3,9 @@ import { HttpError } from "../errors/error";
 
 export const errorMiddleware: ErrorRequestHandler = (
   err,
-  req,
+  _req,
   res,
+  _next,
 ) => {
   const error = err as HttpError;
   res.status(error.status || 500).json({

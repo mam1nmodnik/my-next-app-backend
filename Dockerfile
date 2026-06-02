@@ -23,7 +23,9 @@ ENV PORT=4200
 COPY package.json package-lock.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/app/prisma ./app/prisma
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 4200
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

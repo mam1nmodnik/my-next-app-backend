@@ -2,7 +2,7 @@ import { Request, Router } from "express";
 import { AuthService } from "./auth.service";
 import { LoginType, RegisterType } from "./auth.type";
 import { loginDto, registerDto, logoutDto } from "./auth.dto";
-import { authMiddleware, AuthRequest } from "@/src/shared/http/middlewares/authMiddleware";
+import { authMiddleware, AuthRequest, optionalAuthMiddleware } from "@/src/shared/http/middlewares/authMiddleware";
 
 
 const router = Router();
@@ -38,7 +38,7 @@ router.post("/register", async (req: Request<RegisterType>, res, next) => {
   }
 });
 
-router.patch("/logout", authMiddleware, async (req: AuthRequest, res, next) => {
+router.patch("/logout", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const validation = logoutDto.safeParse(req.body);
     if (!validation.success) {

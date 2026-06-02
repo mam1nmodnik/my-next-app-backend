@@ -21,6 +21,7 @@ router.get("/this-user", optionalAuthMiddleware, async (req: AuthRequest, res, n
         next(e);
     }
 });
+
 router.get("/recommended", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{
         const users = await userService.recommended(req.id);
@@ -79,7 +80,7 @@ router.post("/follow", optionalAuthMiddleware, async (req: AuthRequest, res, nex
 router.post("/unfollow", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
         const idRaw = Number(req.body.id);
-        const sessionId = Number(req.id);
+        const sessionId = Number(req.id ?? 0);
         const validation = userIdDto.safeParse({ id: idRaw });
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
@@ -95,13 +96,20 @@ router.post("/unfollow", optionalAuthMiddleware, async (req: AuthRequest, res, n
 router.get("/user", optionalAuthMiddleware, async (req: AuthRequest, res, next) => { 
     try {
         const idRaw = Number(req.query.id);
-        const sessionId = Number(req.id);
+            const validation = userIdDto.safeParse({
+            id: idRaw,
+            });
 
-        const validation = sessionIdDto.safeParse({ id: idRaw, sessionId });
-        if (!validation.success) {
-            return res.status(400).json({ message: validation.error.flatten().fieldErrors });
-        }
-        const user = await userService.user(validation.data.id, sessionId);
+            if (!validation.success) {
+            return res.status(400).json({
+                message: validation.error.flatten().fieldErrors,
+            });
+            }
+
+            const user = await userService.user(
+            Number(validation.data.id),
+            Number(req.id)
+            );
         
         return res.status(200).json({ user });
     }   catch (e) {

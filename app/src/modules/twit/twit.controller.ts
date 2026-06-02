@@ -1,4 +1,4 @@
-import { authMiddleware, AuthRequest } from "@/src/shared/http/middlewares/authMiddleware";
+import { AuthRequest, optionalAuthMiddleware } from "@/src/shared/http/middlewares/authMiddleware";
 import { Router } from "express";
 import { createTwitDto, sessionIdDto, twoIdTwitDto, getMyTwitsDtoId } from "./twit.dto";
 import { TwitService } from "./twit.service";
@@ -9,7 +9,7 @@ const twitService = new TwitService();
 
 
 
-router.get("/get-my", authMiddleware, async (req: AuthRequest, res, next) => {
+router.get("/get-my", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{
         const idRaw = Number(req.id);
         const validation = getMyTwitsDtoId.safeParse({ id: idRaw });
@@ -41,7 +41,7 @@ router.get("/get-all", async (req, res, next) => {
     }
 })                           
 
-router.post("/create", authMiddleware, async (req: AuthRequest, res, next) => {
+router.post("/create", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{ 
 
         const validation = createTwitDto.safeParse(req.body);
@@ -62,7 +62,7 @@ router.post("/create", authMiddleware, async (req: AuthRequest, res, next) => {
     }
 })
 
-router.post("/delete", authMiddleware, async (req: AuthRequest, res, next) => {
+router.post("/delete", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{ 
         const postId = Number(req.body.postId);
         const idRaw = Number(req.id);
@@ -85,7 +85,7 @@ router.post("/delete", authMiddleware, async (req: AuthRequest, res, next) => {
 })
 
 
-router.post("/like", authMiddleware, async (req: AuthRequest, res, next) => {
+router.post("/like", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
         const postId = Number(req.body.postId ?? req.body.id);
         const userId = Number(req.id);
@@ -94,6 +94,22 @@ router.post("/like", authMiddleware, async (req: AuthRequest, res, next) => {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
         const newTwit = await twitService.like(validation.data.id, validation.data.sessionId)
+        
+        res.status(200).json(newTwit)
+
+    } catch (e) {
+        next(e);
+    }
+})
+router.get("/get-user", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
+    try {
+        const userIdRaw = Number(req.query.userId ?? req.query.id);
+        const sessionIdRaw = Number(req.id);
+        const validation = twoIdTwitDto.safeParse({ id: userIdRaw, sessionId: sessionIdRaw });
+        if (!validation.success) {
+            return res.status(400).json({ message: validation.error.flatten().fieldErrors });
+        }
+        const newTwit = await twitService.getAll(validation.data.sessionId)
         
         res.status(200).json(newTwit)
 

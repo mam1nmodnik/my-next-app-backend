@@ -6,9 +6,6 @@ import { TwitService } from "./twit.service";
 const router = Router();
 const twitService = new TwitService();
 
-
-
-
 router.get("/get-my", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{
         const idRaw = Number(req.id);
@@ -43,17 +40,14 @@ router.get("/get-all", async (req, res, next) => {
 
 router.post("/create", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{ 
-
         const validation = createTwitDto.safeParse(req.body);
         if(!validation.success){
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
-        const userId = Number(req.id);
-        if (!Number.isInteger(userId) || userId <= 0) {
-            return res.status(401).json({ message: "Access token невалидный" });
-        }
+        const sessionId = Number(req.id);
+        
         const newTwit = await twitService.create({
-            userId,
+            userId: sessionId,
             content: validation.data.content,
         });
         res.status(201).json(newTwit)
@@ -65,17 +59,16 @@ router.post("/create", optionalAuthMiddleware, async (req: AuthRequest, res, nex
 router.post("/delete", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try{ 
         const postId = Number(req.body.postId);
-        const idRaw = Number(req.id);
+        const sessionId = Number(req.id);
 
-        const validation = twoIdTwitDto.safeParse({ id: postId, sessionId: idRaw });
+        const validation = twoIdTwitDto.safeParse({ id: postId, sessionId: sessionId });
 
         if(!validation.success){
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
-        const userId = Number(req.id);
         
         const newTwit = await twitService.delete({
-            userId,
+            userId: sessionId,
             postId: validation.data.id,
         });
         res.status(200).json(newTwit)
@@ -84,12 +77,13 @@ router.post("/delete", optionalAuthMiddleware, async (req: AuthRequest, res, nex
     }
 })
 
-
 router.post("/like", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
         const postId = Number(req.body.postId ?? req.body.id);
-        const userId = Number(req.id);
-        const validation = twoIdTwitDto.safeParse({ id: postId, sessionId: userId });
+        const sessionId = Number(req.id);
+
+        const validation = twoIdTwitDto.safeParse({ id: postId, sessionId: sessionId });
+        
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
@@ -101,15 +95,15 @@ router.post("/like", optionalAuthMiddleware, async (req: AuthRequest, res, next)
         next(e);
     }
 })
-router.get("/get-user", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
+router.get("/get-user-twits", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
-        const userIdRaw = Number(req.query.userId ?? req.query.id);
-        const sessionIdRaw = Number(req.id);
-        const validation = twoIdTwitDto.safeParse({ id: userIdRaw, sessionId: sessionIdRaw });
+        const userIdRaw = Number(req.query.id);
+        const sessionId = Number(req.id);
+        const validation = twoIdTwitDto.safeParse({ id: userIdRaw, sessionId });
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
-        const newTwit = await twitService.getAll(validation.data.sessionId)
+        const newTwit = await twitService.getUserTwits(validation.data.sessionId, validation.data.id)
         
         res.status(200).json(newTwit)
 

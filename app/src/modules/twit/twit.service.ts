@@ -21,4 +21,7 @@ export class TwitService {
     async delete({ userId, postId }: { userId: number, postId: number }): Promise<MessageResponse> {
         return await twitRepository.delete({ userId, postId })
     }
+    async getUserTwits(sessionId: number, userId: number): Promise<MessageResponse | Twit[]> {    
+        return await twitRepository.getUserTwits(sessionId, userId)
+    }
 }

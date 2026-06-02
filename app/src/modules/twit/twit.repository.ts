@@ -101,30 +101,30 @@ export class TwitRepository {
     }
 
     async getAll(id?: number): Promise<Twit[]> {
-
-    const posts = await prisma.post.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-            user: {
-                select: { id: true, login: true, name: true, avatar: true },
-            },
-            likes: {
-                where: {
-                    userId: id || 0,
-                    isLiked: true,
+        
+        const posts = await prisma.post.findMany({
+            orderBy: { createdAt: "desc" },
+            include: {
+                user: {
+                    select: { id: true, login: true, name: true, avatar: true },
                 },
-                select: {
-                    id: true,
+                likes: {
+                    where: {
+                        userId: id || 0,
+                        isLiked: true,
+                    },
+                    select: {
+                        id: true,
+                    },
                 },
             },
-        },
-    });
+        });
 
-    const result = posts.map((post) => ({
-        ...post,
-        likesCount: post.likesCount,
-        isLiked: post.likes.length > 0,
-    }));
+        const result = posts.map((post) => ({
+            ...post,
+            likesCount: post.likesCount,
+            isLiked: post.likes.length > 0,
+        }));
 
         return result
     }
@@ -179,6 +179,48 @@ export class TwitRepository {
                 return { message: 'Post not found' };
             }
 
+            return { message: 'Internal server error' };
+        }
+    }
+    async getUserTwits(sessionId: number, userId: number): Promise<MessageResponse | Twit[]> {
+        try {
+            const posts = await prisma.post.findMany({
+                where: { userId },
+                orderBy: { createdAt: "desc" },
+                include: {
+                    user: {
+                        select: { 
+                            id: true, 
+                            login: true, 
+                            name: true, 
+                            avatar: true 
+                        },
+                    },
+                    likes: {
+                        where: {
+                            userId: sessionId ?? 0,
+                            isLiked: true,
+                        },
+                        select: {
+                            id: true,
+                        },
+                    },
+                },
+            });
+
+            const result = posts.map((post) => ({
+            ...post,
+            likesCount: post.likesCount,
+            isLiked: post.likes.length > 0,
+            }));
+            return result
+        } catch (error) {
+            if (
+                error instanceof Prisma.PrismaClientKnownRequestError &&
+                error.code === "P2003"
+            ) {
+                return { message: 'User not found' }
+            }
             return { message: 'Internal server error' };
         }
     }

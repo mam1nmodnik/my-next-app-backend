@@ -7,26 +7,67 @@ import { HttpError } from "@/src/shared/http/errors/error";
 
 export class TwitRepository {
     
-    async create( { userId, content }: TwitCreate ): Promise<MessageResponse> { 
+    
+    async like(postId: number, userId: number): Promise<TwitLikeResult> {
         try {
-    await prisma.post.create({
-      data: {
-        content,
-        user: { connect: { id: userId } },
-      },
-    });
+            const result = await prisma.$transaction(async (prisma) => {
+                const existing = await prisma.like.findUnique({
+                    where: {
 
-        return { message: 'Twit create success'}
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2003"
-    ) {
-      return { message: 'User not found' }
-    }
+                        userId_postId: {
+                            userId,
+                            postId,
+                        },
+                    },
+                });
 
-    return { message: 'Internal server error' };
-  }
+                if (existing) {
+                    await prisma.like.delete({
+                        where: {
+                            userId_postId: {
+                                userId,
+                                postId,
+                            },
+                        },
+                    });
+
+                    const post = await prisma.post.update({
+                        where: { id: postId },
+                        data: {
+                            likesCount: { decrement: 1 },
+                        },
+                    });
+
+                    return { post, liked: false };
+                }
+
+                await prisma.like.create({
+                    data: {
+                        userId,
+                        postId,
+                    },
+                });
+
+                const post = await prisma.post.update({
+                    where: { id: postId },
+                    data: {
+                        likesCount: { increment: 1 },
+                    },
+                });
+
+                return { post, liked: true };
+            });
+
+            return result
+        } catch (error) {
+            if (
+                error instanceof Prisma.PrismaClientKnownRequestError &&
+                (error.code === "P2003" || error.code === "P2025")
+            ) {
+                throw new HttpError(404, "Пост не найден");
+            }
+            throw error;
+        }
     }
 
     async getMy(id: number): Promise<Twit[]> {
@@ -88,65 +129,57 @@ export class TwitRepository {
         return result
     }
 
-    async like(postId: number, userId: number): Promise<TwitLikeResult> {
+    async create( { userId, content }: TwitCreate ): Promise<MessageResponse> { 
         try {
-            const result = await prisma.$transaction(async (prisma) => {
-                const existing = await prisma.like.findUnique({
-                    where: {
-
-                        userId_postId: {
-                            userId,
-                            postId,
-                        },
-                    },
-                });
-
-                if (existing) {
-                    await prisma.like.delete({
-                        where: {
-                            userId_postId: {
-                                userId,
-                                postId,
-                            },
-                        },
-                    });
-
-                    const post = await prisma.post.update({
-                        where: { id: postId },
-                        data: {
-                            likesCount: { decrement: 1 },
-                        },
-                    });
-
-                    return { post, liked: false };
-                }
-
-                await prisma.like.create({
-                    data: {
-                        userId,
-                        postId,
-                    },
-                });
-
-                const post = await prisma.post.update({
-                    where: { id: postId },
-                    data: {
-                        likesCount: { increment: 1 },
-                    },
-                });
-
-                return { post, liked: true };
+            await prisma.post.create({
+            data: {
+                content,
+                user: { connect: { id: userId } },
+            },
             });
 
-            return result
+                return { message: 'Twit create success'}
+        } catch (error) {
+            if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2003"
+            ) {
+            return { message: 'User not found' }
+            }
+
+            return { message: 'Internal server error' };
+        }
+    }
+    
+    async delete({ userId, postId }: { userId: number, postId: number }): Promise<MessageResponse> {
+        try {
+            const post = await prisma.post.findUnique({
+                where: { id: postId },
+                select: { userId: true },
+            });
+
+            if (!post) {
+                return { message: 'Post not found' };
+            }
+
+            if (post.userId !== userId) {
+                return { message: 'No permission to delete this post' };
+            }
+
+            await prisma.post.delete({
+                where: { id: postId },
+            });
+
+            return { message: 'Twit delete success' };
         } catch (error) {
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
-                (error.code === "P2003" || error.code === "P2025")
+                error.code === "P2025"
             ) {
-                throw new HttpError(404, "Пост не найден");
+                return { message: 'Post not found' };
             }
-            throw error;
+
+            return { message: 'Internal server error' };
         }
     }
 }

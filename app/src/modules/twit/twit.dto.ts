@@ -8,7 +8,7 @@ export const sessionIdDto = z.object({
     id: z.number().int().positive().optional()
 })
 
-export const likeTwitDto = z.object({
+export const twoIdTwitDto = z.object({
     id: z.number().int().positive(),
     sessionId: z.number().int().positive()
 })

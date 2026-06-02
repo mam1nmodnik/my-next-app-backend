@@ -69,7 +69,7 @@ async recommended(id?: number): Promise<UserRecommended[]> {
     }));
     return result;
   }
-  async following(id: number, sessionId: number): Promise<UserRecommended[]> {
+  async   following(id: number, sessionId: number): Promise<UserRecommended[]> {
 
     const user = await prisma.user.findUnique({
       where: { id: id },
@@ -109,82 +109,86 @@ async recommended(id?: number): Promise<UserRecommended[]> {
     return followers;
   }
   async followers(id: number, sessionId: number): Promise<UserRecommended[]> {
-    const user = await prisma.user.findUnique({
-      where: { id: id },
-      select: {
-        followers: {
+    try {
+        const user = await prisma.user.findUnique({
+          where: { id: id },
           select: {
-            follower: {
-                select: {
-                id: true,
-                login: true,
-                name: true,
-                avatar: true,
-                followers: {
-                  where: {
-                    followerId: sessionId || 0,
+            followers: {
+              select: {
+                follower: {
+                    select: {
+                    id: true,
+                    login: true,
+                    name: true,
+                    avatar: true,
+                    followers: {
+                      where: {
+                        followerId: sessionId,
+                      },
+                    }
                   },
-                }
+                },
               },
             },
           },
-        },
-      },
-    });
+        });
 
-    if (!user) {
-      throw new HttpError(404, "Ошибка получении пользователей(");
+        if (!user) {
+          throw new HttpError(404, "Ошибка получении пользователей(");
+        }
+
+        const followers = user.followers.map((f) => ({
+          id: f.follower.id,
+          login: f.follower.login,
+          name: f.follower.name,
+          avatar: f.follower.avatar,
+          isFollowedByMe: f.follower.followers.length > 0,
+        }));
+        
+        return followers;
     }
-
-    const followers = user.followers.map((f) => ({
-      id: f.follower.id,
-      login: f.follower.login,
-      name: f.follower.name,
-      avatar: f.follower.avatar,
-      isFollowedByMe: f.follower.followers.length > 0,
-    }));
-    
-    return followers;
+    catch (e) {
+        console.error("Ошибка при получении подписчиков:", e);
+        throw new HttpError(500, "Ошибка сервера при получении подписчиков");
+    }
   }
 
-  async follow(followerId: number, followingId: number): Promise<{ message: string, status: number }> {
+  async follow(userId: number, sessionId: number): Promise<{ message: string, status: number }> {
     try {
-      await prisma.follow.create({
+      const res = await prisma.follow.create({
           data: {
-            followerId,
-            followingId,
+            followerId: sessionId,
+            followingId: userId,
           },
         });
-          
-        return { message: "Подписка оформлена", status: 200 };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
-          return { message: "Вы уже подписаны на этого пользователя", status: 200 };
-        }
-        if (error.code === "P2003") {
+        if (!res) {
           throw new HttpError(404, "Пользователь не найден");
         }
+          
+        return { message: "Подписка оформлена", status: 200 };
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new HttpError(400, "Вы уже подписаны на этого пользователя");
       }
-      throw error;
+      console.error("Ошибка при оформлении подписки:", e);
+      throw new HttpError(500, "Ошибка сервера при оформлении подписки");
     }
   }
 
-  async unfollow(followerId: number, followingId: number): Promise<{ message: string, status: number }> {
+  async unfollow(userId: number, sessionId: number): Promise<{ message: string, status: number }> {
     
       const res = await prisma.follow.deleteMany({
         where: {
-          followerId,
-          followingId,
+          followerId: sessionId,
+          followingId: userId,
         },
       });
 
-      return {
-        message: res.count > 0
-          ? "Подписка удалена"
-          : "Вы уже не подписаны на этого пользователя",
-        status: 200,
-      };
+      if (!res) {
+        throw new HttpError(404, "Пользователь не найден");
+      }
+        
+      return { message: "Подписка удалена", status: 200 };
   }
     
   async user(id: number, sessionId: number): Promise<{ message: string, status: number } | User> {

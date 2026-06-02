@@ -6,7 +6,7 @@ import { UserService } from "./user.service";
 const router = Router();
 
 const userService = new UserService();        
-router.get("/this-user", authMiddleware, async (req: AuthRequest, res, next) => {
+router.get("/this-user", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
         const idRaw = Number(req.id);
         const validation = userIdDto.safeParse({ id: idRaw });
@@ -33,8 +33,8 @@ router.get("/recommended", optionalAuthMiddleware, async (req: AuthRequest, res,
 
 router.get("/followers", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
-        const idRaw = Number(req.query.id ?? req.query.userId);
-        const sessionId = Number(req.id ?? 0);
+        const idRaw = Number(req.query.id);
+        const sessionId = Number(req.id);
         const validation = userIdDto.safeParse({ id: idRaw });
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
@@ -61,30 +61,30 @@ router.get("/following", optionalAuthMiddleware, async (req: AuthRequest, res, n
         next(e);
     }
 })
-router.post("/follow", authMiddleware, async (req: AuthRequest, res, next) => {
+router.post("/follow", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
-        const targetId = Number(req.body.id);
+        const idRaw = Number(req.body.id);
         const sessionId = Number(req.id);
-        const validation = userIdDto.safeParse({ id: targetId });
+        const validation = userIdDto.safeParse({ id: idRaw });
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
-        const result = await userService.follow(sessionId, validation.data.id);
+        const result = await userService.follow(validation.data.id, sessionId);
         return res.status(200).json(result);
 
     } catch (e) {
         next(e);
     }
 })
-router.post("/unfollow", authMiddleware, async (req: AuthRequest, res, next) => {
+router.post("/unfollow", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
-        const targetId = Number(req.body.id);
+        const idRaw = Number(req.body.id);
         const sessionId = Number(req.id);
-        const validation = userIdDto.safeParse({ id: targetId });
+        const validation = userIdDto.safeParse({ id: idRaw });
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
-        const result = await userService.unfollow(sessionId, validation.data.id);
+        const result = await userService.unfollow(validation.data.id, sessionId);
         return res.status(200).json(result);
 
     } catch (e) {
@@ -92,7 +92,7 @@ router.post("/unfollow", authMiddleware, async (req: AuthRequest, res, next) => 
     }
 })
 
-router.get("/user", authMiddleware, async (req: AuthRequest, res, next) => { 
+router.get("/user", optionalAuthMiddleware, async (req: AuthRequest, res, next) => { 
     try {
         const idRaw = Number(req.query.id);
         const sessionId = Number(req.id);
@@ -102,9 +102,7 @@ router.get("/user", authMiddleware, async (req: AuthRequest, res, next) => {
             return res.status(400).json({ message: validation.error.flatten().fieldErrors });
         }
         const user = await userService.user(validation.data.id, sessionId);
-        if ("status" in user) {
-            return res.status(user.status).json({ message: user.message });
-        }
+        
         return res.status(200).json({ user });
     }   catch (e) {
             next(e);

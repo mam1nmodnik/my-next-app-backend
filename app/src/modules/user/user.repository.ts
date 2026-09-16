@@ -34,7 +34,7 @@ export class UserRepository {
   }
 
 
-async recommended(id?: number): Promise<UserRecommended[]> { 
+  async recommended(id?: number): Promise<UserRecommended[]> { 
       const users = await prisma.user.findMany({
       take: 5,
       orderBy: {
@@ -69,6 +69,45 @@ async recommended(id?: number): Promise<UserRecommended[]> {
     }));
     return result;
   }
+
+  async search(query: string, sessionId?: number): Promise<UserRecommended[]> {
+    const users = await prisma.user.findMany({
+      where: {
+        id: sessionId ? { not: sessionId } : undefined,
+        OR: [
+          { login: { contains: query, mode: "insensitive" } },
+          { name: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      take: 10,
+      orderBy: {
+        login: "asc",
+      },
+      select: {
+        id: true,
+        login: true,
+        name: true,
+        avatar: true,
+        followers: {
+          where: {
+            followerId: sessionId || 0,
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      login: user.login,
+      name: user.name,
+      avatar: user.avatar,
+      isFollowedByMe: user.followers.length > 0,
+    }));
+  }
+
   async   following(id: number, sessionId: number): Promise<UserRecommended[]> {
 
     const user = await prisma.user.findUnique({
@@ -246,5 +285,36 @@ async recommended(id?: number): Promise<UserRecommended[]> {
         isFollowedByMe,
       }
   }
-    
+  async updateUser(id: number, data: Partial<User>): Promise<{ message: string, status: number }> {
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { id: id },
+      data,
+      select: {
+        id: true,
+        login: true,
+        name: true,
+        email: true,
+        avatar: true,
+        bio: true,
+        date: true,
+        avatarPublicId: true,
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+          },
+        },
+      },
+      });
+
+      if (!updatedUser) {
+        return { message: "Пользователь не найден", status: 404 };
+      }
+      return { message: "Профиль успешно обновлен", status: 200 };
+    } catch (error) {
+      console.error("Ошибка при обновлении профиля:", error);
+      return { message: "Ошибка сервера при обновлении профиля", status: 500 };
+    }
+  }
 }

@@ -29,6 +29,10 @@ model User {
   following Follow[] @relation("UserFollows")
 
   followers Follow[] @relation("UserFollowers")
+
+  directConversationsStarted  DirectConversation[] @relation("DirectConversationParticipantOne")
+  directConversationsReceived DirectConversation[] @relation("DirectConversationParticipantTwo")
+  directMessages              DirectMessage[]       @relation("DirectMessageSender")
   
 }
 
@@ -73,4 +77,39 @@ model Like {
   @@index([postId])
 }
 
+model DirectConversation {
+  id Int @id @default(autoincrement())
+
+  participantOneId Int
+  participantTwoId Int
+
+  participantOne User @relation("DirectConversationParticipantOne", fields: [participantOneId], references: [id], onDelete: Cascade)
+  participantTwo User @relation("DirectConversationParticipantTwo", fields: [participantTwoId], references: [id], onDelete: Cascade)
+
+  messages DirectMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([participantOneId, participantTwoId])
+  @@index([participantTwoId])
+}
+
+model DirectMessage {
+  id Int @id @default(autoincrement())
+
+  conversationId Int
+  senderId       Int
+  content        String
+  isRead         Boolean @default(false)
+
+  conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User               @relation("DirectMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+}
 

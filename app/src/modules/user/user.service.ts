@@ -11,6 +11,9 @@ export class UserService {
    async recommended(id?: number): Promise<UserRecommended[]> {
     return userRepository.recommended(id);
   }
+  async search(query: string, sessionId?: number): Promise<UserRecommended[]> {
+    return userRepository.search(query, sessionId);
+  }
   async following(id: number, sessionId: number): Promise<UserRecommended[]> {
     return userRepository.following(id, sessionId);
   }
@@ -25,5 +28,8 @@ export class UserService {
   }
   async user(id: number, sessionId: number): Promise<{ message: string, status: number } | User> {
     return userRepository.user(id, sessionId);
+  }
+  async updateUser(id: number, data: Partial<User>): Promise<{ message: string, status: number }> {
+    return userRepository.updateUser(id, data);
   }
 }

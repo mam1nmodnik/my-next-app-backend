@@ -1,6 +1,6 @@
 import { authMiddleware, AuthRequest, optionalAuthMiddleware } from "@/src/shared/http/middlewares/authMiddleware";
 import { Router } from "express";
-import { userIdDto, sessionIdDto } from "./user.dto";
+import { userIdDto, sessionIdDto, userUpdateDto } from "./user.dto";
 import { UserService } from "./user.service";
 
 const router = Router();
@@ -31,6 +31,21 @@ router.get("/recommended", optionalAuthMiddleware, async (req: AuthRequest, res,
         next(e);
     }
 })   
+
+router.get("/search", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
+    try {
+        const query = String(req.query.q ?? "").trim();
+
+        if (query.length < 2) {
+            return res.status(200).json({ users: [] });
+        }
+
+        const users = await userService.search(query, req.id);
+        return res.status(200).json({ users });
+    } catch (e) {
+        next(e);
+    }
+})
 
 router.get("/followers", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
     try {
@@ -109,11 +124,26 @@ router.get("/user", optionalAuthMiddleware, async (req: AuthRequest, res, next) 
             const user = await userService.user(
             Number(validation.data.id),
             Number(req.id)
-            );
+            ); 
         
         return res.status(200).json({ user });
     }   catch (e) {
             next(e);
         }
 })
+router.patch("/update", optionalAuthMiddleware, async (req: AuthRequest, res, next) => {
+    try{
+        const { name, avatar, avatarPublicId, bio, email, login } = req.body;
+        const validation = userUpdateDto.safeParse({ name, avatar, avatarPublicId, bio, email, login });
+        if (!validation.success) {
+            return res.status(400).json({ message: validation.error.flatten().fieldErrors });
+        }
+        const result = await userService.updateUser(Number(req.id), validation.data);
+        return res.status(200).json(result);
+
+    }catch (e){
+        next(e);
+    }
+})
+
 export const userRouter = router;

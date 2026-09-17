@@ -30,10 +30,9 @@ model User {
 
   followers Follow[] @relation("UserFollowers")
 
-  directConversationsStarted  DirectConversation[] @relation("DirectConversationParticipantOne")
-  directConversationsReceived DirectConversation[] @relation("DirectConversationParticipantTwo")
-  directMessages              DirectMessage[]       @relation("DirectMessageSender")
-  
+  chatsAsUser1 Chat[]    @relation("ChatAsUser1")
+  chatsAsUser2 Chat[]    @relation("ChatAsUser2")
+  messages     Message[] @relation("MessageAuthor")
 }
 
 model Follow {
@@ -77,39 +76,40 @@ model Like {
   @@index([postId])
 }
 
-model DirectConversation {
-  id Int @id @default(autoincrement())
 
-  participantOneId Int
-  participantTwoId Int
+model Chat {
+  id        Int       @id @default(autoincrement())
+  
+  // Два участника
+  user1Id   Int
+  user2Id   Int
+  user1     User      @relation("ChatAsUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2     User      @relation("ChatAsUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  
+  messages  Message[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  participantOne User @relation("DirectConversationParticipantOne", fields: [participantOneId], references: [id], onDelete: Cascade)
-  participantTwo User @relation("DirectConversationParticipantTwo", fields: [participantTwoId], references: [id], onDelete: Cascade)
-
-  messages DirectMessage[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([participantOneId, participantTwoId])
-  @@index([participantTwoId])
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
 }
 
-model DirectMessage {
-  id Int @id @default(autoincrement())
+model Message {
+  id        Int       @id @default(autoincrement())
+  chatId    Int
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  authorId  Int
+  author    User      @relation("MessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  content   String    @db.Text
+  isRead    Boolean   @default(false)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  conversationId Int
-  senderId       Int
-  content        String
-  isRead         Boolean @default(false)
-
-  conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User               @relation("DirectMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([conversationId])
-  @@index([senderId])
+  @@index([chatId])
+  @@index([authorId])
 }
-

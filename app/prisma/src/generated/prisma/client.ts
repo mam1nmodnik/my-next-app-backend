@@ -60,7 +60,12 @@ export type Post = Prisma.PostModel
  */
 export type Like = Prisma.LikeModel
 /**
- * Model RefreshToken
+ * Model Chat
  * 
  */
-export type RefreshToken = Prisma.RefreshTokenModel
+export type Chat = Prisma.ChatModel
+/**
+ * Model Message
+ * 
+ */
+export type Message = Prisma.MessageModel

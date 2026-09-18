@@ -1,13 +1,13 @@
 import { AuthenticatedWebSocket, WebSocketEvent } from "./types";
 import { handleChatGet, handleChatList, handleChatStart, handleChatUnreadCount } from "./handlers/chat.hendler";
-import { handleMessageSend, handleMarkAsRead } from "./handlers/message.hendler";
+import { handleMessageSend, handleMarkAsRead, handleMessageGet } from "./handlers/message.hendler";
 
 const handlers = {
   "chat.start": handleChatStart,
   "chat.list": handleChatList,
   "chat.get": handleChatGet,
   "chat.unreadCount": handleChatUnreadCount,
-
+  "message.get" : handleMessageGet, 
   "message.send": handleMessageSend,
   "message.markAsRead": handleMarkAsRead,
 

@@ -2,10 +2,14 @@ import { WebSocketServer } from "ws";
 import type { Server } from "http";
 
 import { handleWebSocketEvent } from "./router";
-import { AuthenticatedWebSocket, WebSocketEvent } from "./types";
+import {
+  AuthenticatedWebSocket,
+  WebSocketEvent,
+} from "./types";
 import { authenticateWebSocket } from "./auth";
+import { connectionManager } from "./connection.manager";
 
-export  function createWebSocketServer(server: Server) {
+export function createWebSocketServer(server: Server) {
   const wss = new WebSocketServer({
     server,
   });
@@ -16,8 +20,10 @@ export  function createWebSocketServer(server: Server) {
     let authenticatedSocket: AuthenticatedWebSocket | null = null;
 
     socket.on("message", async (message) => {
-      
-  
+      console.log(
+        "🔥 RAW MESSAGE:",
+        message.toString(),
+      );
 
       try {
         const event = JSON.parse(
@@ -25,11 +31,17 @@ export  function createWebSocketServer(server: Server) {
         ) as WebSocketEvent & {
           accessToken?: string;
         };
-    console.log("PARSED EVENT:", event);
 
-        // Авторизация
+        console.log("PARSED EVENT:", event);
+
+        /**
+         * Первое сообщение обязательно должно быть auth
+         */
         if (!authenticatedSocket) {
-          if (event.type !== "auth" || !event.accessToken) {
+          if (
+            event.type !== "auth" ||
+            !event.accessToken
+          ) {
             socket.send(
               JSON.stringify({
                 type: "auth.error",
@@ -48,8 +60,12 @@ export  function createWebSocketServer(server: Server) {
 
           authenticatedSocket =
             socket as AuthenticatedWebSocket;
-          
+
           authenticatedSocket.userId = userId;
+
+          connectionManager.add(
+            authenticatedSocket,
+          );
 
           console.log(
             `WebSocket authenticated: userId=${userId}`,
@@ -58,33 +74,57 @@ export  function createWebSocketServer(server: Server) {
           socket.send(
             JSON.stringify({
               type: "auth.success",
-              message: "Authentication successful",
+              message:
+                "Authentication successful",
             }),
           );
 
           return;
         }
-    console.log("BEFORE ROUTER:", event);
 
-        // После авторизации
+        console.log("BEFORE ROUTER:", event);
+
         await handleWebSocketEvent(
           authenticatedSocket,
           event,
         );
       } catch (error) {
-        console.error("WebSocket error:", error);
+        console.error(
+          "WebSocket error:",
+          error,
+        );
 
         socket.send(
           JSON.stringify({
             type: "error",
-            message: "Invalid WebSocket message",
+            message:
+              "Invalid WebSocket message",
           }),
         );
       }
     });
 
     socket.on("close", () => {
-      console.log("WebSocket disconnected");
+      console.log(
+        "WebSocket disconnected",
+      );
+
+      if (authenticatedSocket) {
+        connectionManager.remove(
+          authenticatedSocket,
+        );
+
+        console.log(
+          `WebSocket removed: userId=${authenticatedSocket.userId}`,
+        );
+      }
+    });
+
+    socket.on("error", (error) => {
+      console.error(
+        "WebSocket socket error:",
+        error,
+      );
     });
   });
 

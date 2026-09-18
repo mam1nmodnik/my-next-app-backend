@@ -98,3 +98,58 @@ export async function createOrGetChat(
     },
   });
 }
+
+
+export async function getChatById(
+  chatId: number,
+  userId: number,
+) {
+  const chat = await prisma.chat.findFirst({
+    where: {
+      id: chatId,
+      OR: [
+        { user1Id: userId },
+        { user2Id: userId },
+      ],
+    },
+    include: {
+      user1: {
+        select: {
+          id: true,
+          login: true,
+          name: true,
+          avatar: true,
+        },
+      },
+      user2: {
+        select: {
+          id: true,
+          login: true,
+          name: true,
+          avatar: true,
+        },
+      },
+    },
+  });
+
+  if (!chat) {
+    return null;
+  }
+
+  const participant =
+    chat.user1Id === userId
+      ? chat.user2
+      : chat.user1;
+
+  return {
+    id: chat.id,
+    participant: {
+      id: participant.id,
+      login: participant.login,
+      name: participant.name,
+      avatar: participant.avatar,
+    },
+    createdAt: chat.createdAt,
+    updatedAt: chat.updatedAt,
+  };
+}

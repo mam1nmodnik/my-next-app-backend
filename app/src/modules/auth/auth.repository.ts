@@ -18,6 +18,15 @@ export class AuthRepository {
       throw new HttpError(401, "Пароли не совпадают");
     }
 
+    const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+    const role = initialAdminEmail === user.email.toLowerCase()
+      ? (await prisma.user.update({
+          where: { id: user.id },
+          data: { role: "ADMIN" },
+          select: { role: true },
+        })).role
+      : user.role;
+
     const accessToken = generateAccessToken(String(user.id));
     const refreshToken = generateRefreshToken(String(user.id));
 
@@ -25,7 +34,8 @@ export class AuthRepository {
       user: {
         id: user.id,
         login: user.login,
-        email: user.email
+        email: user.email,
+        role,
       },
       accessToken,
       refreshToken,
@@ -52,6 +62,7 @@ export class AuthRepository {
         email: email,
         login: login,
         password: checkedPassword,
+        role: "USER",
       },
     });
 

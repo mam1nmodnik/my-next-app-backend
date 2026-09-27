@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "@/src/shared/config/env";
+import { prisma } from "@/src/shared/db/prisma";
 
 export interface AuthRequest extends Request {
   id?: number;
@@ -50,4 +51,29 @@ export const optionalAuthMiddleware = (
   }
 
   return authMiddleware(req, res, next);
+};
+
+export const adminMiddleware = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.id) {
+      return res.status(401).json({ message: "Не авторизован" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.id },
+      select: { role: true },
+    });
+
+    if (user?.role !== "ADMIN") {
+      return res.status(403).json({ message: "Недостаточно прав" });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 };

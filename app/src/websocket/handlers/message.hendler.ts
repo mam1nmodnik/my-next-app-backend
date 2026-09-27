@@ -1,4 +1,4 @@
-import { createMessage, getMessagesByChatId } from "@/src/modules/chat/message/message.repository";
+import { createMessage, getMessagesByChatId, markChatMessagesAsRead } from "@/src/modules/chat/message/message.repository";
 import { WebSocketEvent , AuthenticatedWebSocket} from "../types";
 import { prisma } from "@/src/shared/db/prisma";
 import { connectionManager } from "../connection.manager";
@@ -57,6 +57,7 @@ export async function handleMessageSend(
 
   const messageData = {
     id: message.id,
+    chatId: message.chatId,
     isOwnMessage: true,
     content: message.content,
     createdAt: message.createdAt,
@@ -92,8 +93,24 @@ export async function handleMarkAsRead(
     socket: AuthenticatedWebSocket,
     event: WebSocketEvent
 ){
+  const data = event.data as { chatId?: number };
+  const chatId = data?.chatId;
 
-}   
+  if (!chatId) return;
+
+  const result = await markChatMessagesAsRead(chatId, socket.userId);
+  if (!result) return;
+
+  const readEvent = {
+    type: "message.read",
+    data: { chatId, messageIds: result.messageIds },
+  };
+
+  socket.send(JSON.stringify(readEvent));
+  if (result.authorId !== null) {
+    connectionManager.sendToUser(result.authorId, readEvent);
+  }
+}
 
 export async function handleMessageGet(
   socket: AuthenticatedWebSocket,
@@ -101,6 +118,7 @@ export async function handleMessageGet(
 ) {
   const data = event.data as {
     chatId?: number;
+    beforeId?: number;
   };
 
   const chatId = data?.chatId;
@@ -120,6 +138,7 @@ export async function handleMessageGet(
   const messages = await getMessagesByChatId(
     chatId,
     socket.userId,
+    data.beforeId,
   );
 
   if (!messages) {
@@ -138,7 +157,7 @@ export async function handleMessageGet(
     JSON.stringify({
       type: "message.get.success",
       requestId: event.requestId,
-      data: messages,
+      data: { chatId, ...messages, beforeId: data.beforeId ?? null },
     }),
   );
 }

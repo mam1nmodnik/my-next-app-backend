@@ -18,6 +18,7 @@ export interface AuthUser {
   id: number;
   login: string;
   email: string;
+  role: "USER" | "ADMIN";
 }
 
 // Token
@@ -37,5 +38,4 @@ export interface LogoutType {
   id: number;
   refreshToken: string;
 }
-
 

@@ -11,24 +11,19 @@ const server = createServer(app);
 
 createWebSocketServer(server);
 
-
 async function main() {
-
-  server.listen(env.port, () => {
-    console.log(`Server is running on port ${env.port}`);
-  });
-
-  prisma.$connect().then(() => {
+  try {
+    await prisma.$connect();
     console.log("Connected to the database");
-  }).catch((err) => {
-    console.error("Failed to connect to the database", err);
-    process.exit(1);
-  });
 
+    server.listen(env.port, "0.0.0.0", () => {
+      console.log(`Server is running on port ${env.port}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
 }
 
-main().catch(async (error) => {
-  prisma.$disconnect();
-  console.error(error);
-  process.exit(1);
-});
+main();
